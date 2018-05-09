@@ -6,9 +6,9 @@ defmodule Anuket.Job.Queue do
     GenStage.start_link(__MODULE__, {sinks, config}, name: __MODULE__)
   end
 
-  def invoke(name, params) do
+  def invoke(name, params, timeout \\ :infinity) do
     Logger.debug("JOB invoke: #{inspect(name)} #{inspect(params)}")
-    GenStage.call(__MODULE__, {:invoke, name, params})
+    GenStage.call(__MODULE__, {:invoke, name, params}, timeout)
   end
 
   def init({sinks, config}) do
