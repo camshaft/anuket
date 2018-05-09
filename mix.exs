@@ -13,7 +13,12 @@ defmodule Anuket.MixProject do
 
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger],
+      env: [
+        port: {:system, :integer, "PORT", 5000},
+        job_queue: [backend: Anuket.Queue.Memory],
+        heroku_api_token: {:system, "HEROKU_API_TOKEN"}
+      ]
     ]
   end
 
@@ -23,6 +28,8 @@ defmodule Anuket.MixProject do
       {:ex_aws_sqs, "~> 2.0"},
       {:httpoison, "~> 1.0"},
       {:poison, "~> 3.0"},
+      {:plug, "~> 1.5"},
+      {:cowboy, "~> 2.0"},
       {:hackney, "~> 1.9"},
       {:sweet_xml, "~> 0.6"},
       {:gen_stage, "~> 0.13.0"},

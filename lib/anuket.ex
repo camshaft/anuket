@@ -4,13 +4,14 @@ defmodule Anuket do
 
     config = Anuket.Config.read!(file)
 
-    sinks = config[:sinks]
-    sources = config[:sources]
-    pipes = config[:pipes]
-    job_queue = config[:job_queue]
+    sinks = config[:sinks] || []
+    sources = config[:sources] || []
+    pipes = config[:pipes] || []
+    job_queue = config[:job_queue] || []
 
     Enum.concat([
       [worker(Anuket.Job.Queue, [sinks, job_queue])],
+      [__MODULE__.Server.child_spec()],
       for {name, source} <- sources do
         worker(Anuket.Source.Producer, [name, source], id: name)
       end,
