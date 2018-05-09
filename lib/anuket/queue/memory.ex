@@ -10,7 +10,7 @@ defmodule Anuket.Queue.Memory do
     def push(%{queue: queue, demand: demand}, event) do
       queue = :queue.in(event, queue)
 
-      dispatch_events(queue, demand, [])
+      %@for{queue: queue, demand: demand}
     end
 
     def handle_demand(%{queue: queue, demand: prev_demand}, demand) do

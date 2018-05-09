@@ -43,12 +43,12 @@ defmodule Anuket.Queue.SQS do
   end
 
   defimpl Anuket.Queue do
-    def push(%{queue: queue, demand: demand}, event) do
+    def push(%{queue: queue}, event) do
       queue
       |> ExAws.SQS.send_message(Poison.encode!(event))
       |> ExAws.request!()
 
-      dispatch_events(queue, demand, [])
+      queue
     end
 
     def handle_demand(%{queue: queue, demand: prev_demand}, demand) do

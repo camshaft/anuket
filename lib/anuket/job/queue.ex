@@ -6,9 +6,21 @@ defmodule Anuket.Job.Queue do
     GenStage.start_link(__MODULE__, {sinks, config}, name: __MODULE__)
   end
 
-  def invoke(name, params, timeout \\ :infinity) do
+  def invoke(name, params) do
     Logger.debug("JOB invoke: #{inspect(name)} #{inspect(params)}")
-    GenStage.call(__MODULE__, {:invoke, name, params}, timeout)
+
+    case :ets.lookup(__MODULE__, name) do
+      [{_, sink}] ->
+        params = validate_params(params, sink[:params])
+        GenServer.cast(__MODULE__, {:invoke, name, params})
+        :ok
+
+      _ ->
+        {:error, {:invalid_job, name}}
+    end
+  rescue
+    err in KeyError ->
+      {:error, err}
   end
 
   def init({sinks, config}) do
@@ -31,7 +43,11 @@ defmodule Anuket.Job.Queue do
         end)
       )
 
-    {:producer, {Enum.into(mapping, %{}), backend},
+    table = :ets.new(__MODULE__, [:protected, :named_table, {:read_concurrency, true}])
+
+    :ets.insert(table, Enum.to_list(mapping))
+
+    {:producer, backend,
      dispatcher: {
        GenStage.PartitionDispatcher,
        partitions: Keyword.keys(sinks), hash: & &1
@@ -46,33 +62,22 @@ defmodule Anuket.Job.Queue do
     |> backend.new()
   end
 
-  def handle_demand(demand, {sinks, backend}) do
+  def handle_demand(demand, backend) do
     {events, backend} = Anuket.Queue.handle_demand(backend, demand)
-    events = Enum.map(events, &process_event(&1, sinks))
-    {:noreply, events, {sinks, backend}}
+    events = Enum.map(events, &process_event(&1))
+    {:noreply, events, backend}
   end
 
-  def handle_info(message, {sinks, backend}) do
+  def handle_info(message, backend) do
     {events, backend} = Anuket.Queue.handle_info(backend, message)
-    events = Enum.map(events, &process_event(&1, sinks))
-    {:noreply, events, {sinks, backend}}
+    events = Enum.map(events, &process_event(&1))
+    {:noreply, events, backend}
   end
 
-  def handle_call({:invoke, name, params}, _from, {sinks, backend}) do
-    case Map.fetch(sinks, name) do
-      {:ok, sink} ->
-        params = validate_params(params, sink[:params])
-        {events, backend} = Anuket.Queue.push(backend, %{"name" => name, "params" => params})
-        events = Enum.map(events, &process_event(&1, sinks))
+  def handle_cast({:invoke, name, params}, backend) do
+    backend = Anuket.Queue.push(backend, %{"name" => name, "params" => params})
 
-        {:reply, :ok, events, {sinks, backend}}
-
-      _ ->
-        {:reply, {:error, :invalid_name}, [], {sinks, backend}}
-    end
-  rescue
-    KeyError ->
-      {:reply, {:error, :invalid_params}, [], {sinks, backend}}
+    {:reply, :ok, [], backend}
   end
 
   defp validate_params(params, validations) do
@@ -82,8 +87,8 @@ defmodule Anuket.Job.Queue do
     end)
   end
 
-  defp process_event({%{"name" => name, "params" => params}, receipt}, sinks) do
-    %{name: name, params: validations} = Map.fetch!(sinks, name)
+  defp process_event({%{"name" => name, "params" => params}, receipt}) do
+    [%{name: name, params: validations}] = :ets.lookup(__MODULE__, name)
     params = validate_params(params, validations)
     {{params, receipt}, name}
   end
