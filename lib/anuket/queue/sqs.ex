@@ -3,6 +3,8 @@ defmodule Anuket.Queue.SQS do
             retry_timeout: 1_000,
             queue: nil
 
+  require Logger
+
   defmodule ObjectCreated do
     defstruct [:bucket, :key, :etag, :time]
 
@@ -44,9 +46,11 @@ defmodule Anuket.Queue.SQS do
 
   defimpl Anuket.Queue do
     def push(%{queue: queue}, event) do
-      queue
+      res = queue
       |> ExAws.SQS.send_message(Poison.encode!(event))
       |> ExAws.request!()
+
+      Logger.debug("SQS: #{inspect(res)}")
 
       queue
     end
