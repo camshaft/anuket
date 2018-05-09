@@ -10,7 +10,7 @@ defmodule Anuket.Config do
     file
     |> Mix.Config.read!()
     |> Enum.into(%{
-      job_queue: Confex.fetch_env!(:anuket, :job_queue)
+      job_queue: Confex.get_env(:anuket, :job_queue, backend: Anuket.Queue.Memory)
     })
   end
 

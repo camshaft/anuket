@@ -8,7 +8,11 @@ defmodule Anuket.Sink.Heroku do
   end
 
   def process_request_headers(headers) do
-    token = Confex.fetch_env!(:anuket, :heroku_api_token)
+    token = Confex.get_env(:anuket, :heroku_api_token) || System.get_env("HEROKU_API_TOKEN")
+
+    if !token do
+      raise ArgumentError, "Missing :heroku_api_token"
+    end
 
     [
       {"authorization", "Bearer #{token}"},
