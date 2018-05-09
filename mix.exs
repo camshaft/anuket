@@ -17,7 +17,7 @@ defmodule Anuket.MixProject do
       env: [
         port: {:system, :integer, "PORT", 5000},
         job_queue: [backend: Anuket.Queue.Memory],
-        heroku_api_token: {:system, "HEROKU_API_TOKEN"}
+        heroku_api_token: {:system, "HEROKU_API_KEY"}
       ]
     ]
   end
