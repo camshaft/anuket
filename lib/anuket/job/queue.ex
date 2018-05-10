@@ -77,7 +77,7 @@ defmodule Anuket.Job.Queue do
   def handle_cast({:invoke, name, params}, backend) do
     backend = Anuket.Queue.push(backend, %{"name" => name, "params" => params})
 
-    {:reply, :ok, [], backend}
+    {:noreply, [], backend}
   end
 
   defp validate_params(params, validations) do
