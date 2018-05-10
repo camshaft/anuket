@@ -45,14 +45,14 @@ defmodule Anuket.Queue.SQS do
   end
 
   defimpl Anuket.Queue do
-    def push(%{queue: queue}, event) do
+    def push(%{queue: queue} = q, event) do
       res = queue
       |> ExAws.SQS.send_message(Poison.encode!(event))
       |> ExAws.request!()
 
       Logger.debug("SQS: #{inspect(res)}")
 
-      queue
+      q
     end
 
     def handle_demand(%{queue: queue, demand: prev_demand}, demand) do
@@ -79,6 +79,11 @@ defmodule Anuket.Queue.SQS do
       )
       |> ExAws.request()
       |> case do
+        {:ok, %{body: %{messages: []}}} ->
+          Logger.debug("SQS: #{queue} empty")
+          :timer.send_after(1_000, :sqs_retry)
+          {Enum.to_list(events), %@for{queue: queue, demand: 0}}
+
         {:ok, %{body: %{messages: messages}}} ->
           events =
             Stream.concat(
@@ -88,10 +93,6 @@ defmodule Anuket.Queue.SQS do
 
           dispatch_events(queue, demand - length(messages), events)
       end
-
-      #   {:empty, queue} ->
-      #     :timer.send_after(1_000, :sqs_retry)
-      #     {Enum.reverse(events), %@for{queue: queue, demand: demand}}
     end
 
     defp handle_message(%{body: body, receipt_handle: receipt}, queue) do
@@ -144,6 +145,10 @@ defmodule Anuket.Queue.SQS do
         key: key,
         time: time
       }
+    end
+
+    defp handle_event(event) do
+      event
     end
 
     defp handle_receipt(queue, receipt, :ok) do

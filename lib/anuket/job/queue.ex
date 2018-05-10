@@ -12,7 +12,7 @@ defmodule Anuket.Job.Queue do
     case :ets.lookup(__MODULE__, name) do
       [{_, sink}] ->
         params = validate_params(params, sink[:params])
-        GenServer.cast(__MODULE__, {:invoke, name, params})
+        GenStage.cast(__MODULE__, {:invoke, name, params})
         :ok
 
       _ ->
