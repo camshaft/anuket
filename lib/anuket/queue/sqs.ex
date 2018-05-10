@@ -82,7 +82,7 @@ defmodule Anuket.Queue.SQS do
         {:ok, %{body: %{messages: []}}} ->
           Logger.debug("SQS: #{queue} empty")
           :timer.send_after(1_000, :sqs_retry)
-          {Enum.to_list(events), %@for{queue: queue, demand: 0}}
+          {Enum.to_list(events), %@for{queue: queue, demand: demand}}
 
         {:ok, %{body: %{messages: messages}}} ->
           events =

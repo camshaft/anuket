@@ -1,6 +1,8 @@
 defmodule Anuket.Sink.Heroku.OneOff do
   defstruct [:app, :command, :size, :time_to_live, :type]
 
+  require Logger
+
   def new(config) do
     config = Enum.into(config, %{})
 
@@ -25,6 +27,7 @@ defmodule Anuket.Sink.Heroku.OneOff do
     end
 
     defp run(%{app: app, size: size, time_to_live: time_to_live, type: type}, command, _params) do
+      Logger.debug("HEROKU: #{app}:#{type} - #{command}")
       %{status_code: 201, body: %{"id" => id}} =
         Heroku.post!("/apps/#{app}/dynos", %{
           "attach" => false,
