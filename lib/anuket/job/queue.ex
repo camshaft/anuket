@@ -88,7 +88,7 @@ defmodule Anuket.Job.Queue do
   end
 
   defp process_event({%{"name" => name, "params" => params}, receipt}) do
-    [%{name: name, params: validations}] = :ets.lookup(__MODULE__, name)
+    [{_, %{name: name, params: validations}}] = :ets.lookup(__MODULE__, name)
     params = validate_params(params, validations)
     {{params, receipt}, name}
   end
