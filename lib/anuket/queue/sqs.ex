@@ -120,7 +120,7 @@ defmodule Anuket.Queue.SQS do
 
       %@for.ObjectCreated{
         bucket: bucket,
-        key: key,
+        key: URI.decode(key),
         etag: etag,
         time: time
       }
@@ -142,7 +142,7 @@ defmodule Anuket.Queue.SQS do
 
       %@for.ObjectDeleted{
         bucket: bucket,
-        key: key,
+        key: URI.decode(key),
         time: time
       }
     end
