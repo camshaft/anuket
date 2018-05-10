@@ -75,13 +75,13 @@ defmodule Anuket.Queue.SQS do
       queue
       |> ExAws.SQS.receive_message(
         max_number_of_messages: max(1, min(10, demand)),
-        wait_time_seconds: 20
+        wait_time_seconds: 0
       )
       |> ExAws.request()
       |> case do
         {:ok, %{body: %{messages: []}}} ->
           Logger.debug("SQS: #{queue} empty")
-          :timer.send_after(1_000, :sqs_retry)
+          :timer.send_after(20_000, :sqs_retry)
           {Enum.to_list(events), %@for{queue: queue, demand: demand}}
 
         {:ok, %{body: %{messages: messages}}} ->
