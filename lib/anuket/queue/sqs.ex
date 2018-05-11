@@ -1,6 +1,7 @@
 defmodule Anuket.Queue.SQS do
   defstruct demand: 0,
             retry_timeout: 1_000,
+            timer: nil,
             queue: nil
 
   require Logger
@@ -55,8 +56,12 @@ defmodule Anuket.Queue.SQS do
       q
     end
 
-    def handle_demand(%{queue: queue, demand: prev_demand}, demand) do
+    def handle_demand(%{queue: queue, demand: prev_demand, timer: nil}, demand) do
       dispatch_events(queue, prev_demand + demand, [])
+    end
+
+    def handle_demand(%{demand: prev_demand} = queue, demand) do
+      {[], %{queue | demand: prev_demand + demand}}
     end
 
     def handle_info(%{queue: queue, demand: demand}, :sqs_retry) do
@@ -81,8 +86,8 @@ defmodule Anuket.Queue.SQS do
       |> case do
         {:ok, %{body: %{messages: []}}} ->
           Logger.debug("SQS: #{queue} empty")
-          :timer.send_after(20_000, :sqs_retry)
-          {Enum.to_list(events), %@for{queue: queue, demand: demand}}
+          timer = :timer.send_after(20_000, :sqs_retry)
+          {Enum.to_list(events), %@for{queue: queue, demand: demand, timer: timer}}
 
         {:ok, %{body: %{messages: messages}}} ->
           events =
